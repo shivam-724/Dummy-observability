@@ -1,0 +1,93 @@
+# =============================================================================
+# OTel Collector Configuration
+# =============================================================================
+# This file tells the OpenTelemetry Collector three things:
+#   1. RECEIVERS  — where to ACCEPT incoming telemetry data
+#   2. PROCESSORS — what to DO with the data before sending it out
+#   3. EXPORTERS  — where to SEND the data to
+#
+# Think of it as a pipeline:
+#   [Your Python App] --> [Receiver] --> [Processor] --> [Exporter] --> [OpenObserve]
+# =============================================================================
+
+
+# -----------------------------------------------------------------------------
+# RECEIVERS
+# -----------------------------------------------------------------------------
+# A receiver is the "ear" of the Collector — it listens for incoming data.
+# We use the OTLP receiver, which is the standard OTel protocol.
+# Your Python app (via the OTel SDK) will PUSH logs TO this receiver.
+
+receivers:
+  otlp:                          # Use the OTLP protocol (standard OTel format)
+    protocols:
+      grpc:                      # Accept data over gRPC (fast, binary protocol)
+        endpoint: 0.0.0.0:4317  # Listen on ALL network interfaces, port 4317
+                                 # 0.0.0.0 means "any IP on this machine"
+                                 # 4317 is the standard OTLP gRPC port
+                                 # Your Python app sends to localhost:4317
+
+
+# -----------------------------------------------------------------------------
+# PROCESSORS
+# -----------------------------------------------------------------------------
+# Processors sit between the receiver and exporter.
+# They transform, filter, or buffer the data before it goes out.
+# We use only the 'batch' processor here.
+
+processors:
+  batch:                         # Groups multiple log records together
+    timeout: 5s                  # Wait up to 5 seconds before sending a batch
+                                 # WHY: Sending 1 log at a time = 1 HTTP request per log
+                                 # Batching = 1 HTTP request for 50 logs (much more efficient)
+    send_batch_size: 50          # OR send immediately when 50 logs are collected
+                                 # Whichever comes first: 5 seconds OR 50 logs
+
+
+# -----------------------------------------------------------------------------
+# EXPORTERS
+# -----------------------------------------------------------------------------
+# An exporter is the "mouth" of the Collector — it sends data to a backend.
+# We export to OpenObserve using the OTLP/HTTP protocol.
+
+exporters:
+  otlphttp:                                              # Export using OTLP over HTTP
+    endpoint: http://localhost:5080/api/default          # OpenObserve's OTLP ingestion URL
+                                                         # localhost:5080  = OpenObserve server
+                                                         # /api/default    = the "default" org in OpenObserve
+                                                         # OpenObserve auto-appends /v1/logs to this
+
+    headers:
+      Authorization: "Basic cm9vdEBleGFtcGxlLmNvbTpDb21wbGV4cGFzcyMxMjM="
+      # WHY: OpenObserve requires authentication for all API calls
+      # This is HTTP Basic Auth, Base64 encoded
+      # Decoded value: root@example.com:Complexpass#123
+      # These are OpenObserve's DEFAULT credentials
+      # ⚠️  Change this if you changed your OpenObserve password!
+
+    tls:
+      insecure: true             # Disable TLS certificate verification
+                                 # WHY: We're running locally (localhost), not on HTTPS
+                                 # In production you'd set this to false and provide certs
+
+
+# -----------------------------------------------------------------------------
+# SERVICE
+# -----------------------------------------------------------------------------
+# The service section WIRES everything together into named pipelines.
+# A pipeline is: receiver(s) → processor(s) → exporter(s)
+# We define only a LOGS pipeline since we're not collecting traces or metrics.
+
+service:
+  pipelines:
+    logs:                        # Name of the pipeline (we're only doing logs)
+      receivers:  [otlp]         # Accept logs from the OTLP receiver defined above
+      processors: [batch]        # Pass them through the batch processor
+      exporters:  [otlphttp]     # Send them out via the otlphttp exporter to OpenObserve
+
+  # Optional: configure the Collector's own internal telemetry
+  telemetry:
+    logs:
+      level: info                # Log level for the Collector itself (not your app)
+                                 # You'll see Collector startup messages in its terminal
+                                 # Options: debug, info, warn, error

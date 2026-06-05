@@ -1,0 +1,45 @@
+# ── Environment & Secrets ─────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example          # allow a template example if you create one
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]              # .pyc, .pyo, .pyd compiled bytecode
+*.pdb                  # debugger files
+*.egg-info/
+dist/
+build/
+*.egg
+
+# ── Virtual Environment ───────────────────────────────────────────────────────
+venv/
+.venv/
+env/
+.env/
+
+# ── IDE & Editor ──────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.user
+*.sublime-project
+*.sublime-workspace
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store              # macOS
+Thumbs.db              # Windows
+desktop.ini
+
+# ── Logs & Temp ───────────────────────────────────────────────────────────────
+*.log
+*.tmp
+*.temp
+
+# ── OpenTelemetry / Observability ─────────────────────────────────────────────
+# Uncomment if you ever store local OTel data files:
+# otel-data/
+
+# ── LangChain / LangSmith ─────────────────────────────────────────────────────
+.langchain/
+langchain.db
